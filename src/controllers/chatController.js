@@ -1,6 +1,7 @@
 const { generateDiary } = require("../utils/chatgpt");
 const { speechToText } = require("../utils/stt");
 const { textToSpeechConvert } = require("../utils/tts");
+const Diary = require("../models/Diary"); //
 const ElderlyUser = require("../models/ElderlyUser");
 const ChatSession = require("../models/ChatSession");
 const { v4: uuidv4 } = require("uuid");
@@ -8,9 +9,50 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const WebSocket = require('ws');
 
+// 오늘의 일기가 이미 생성되었는지 확인하는 함수
+async function checkDiaryExistsForToday(userId) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  const startDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+  const endDate = new Date(`${year}-${month}-${day}T23:59:59.999Z`);
+
+  const existingDiary = await Diary.findOne({
+    userId: userId,
+    date: { $gte: startDate, $lte: endDate }
+  });
+
+  return existingDiary ? true : false;
+}
+
 // 소담이 먼저 말 걸어줌
 async function initMessage(ws, token, sessionId) {
   const userId = getUserFromToken(token);
+
+  // 오늘의 일기가 이미 생성되었는지 확인
+  const diaryExists = await checkDiaryExistsForToday(userId);
+  if (diaryExists) {
+    const diaryExistsMsg = '오늘의 일기는 이미 생성되었어요. 내일 또 대화 나눠요!';
+    let audioContent = await textToSpeechConvert(diaryExistsMsg);
+
+    // JSON 응답 전송
+    ws.send(
+      JSON.stringify({
+        type: "response",
+        userText: '...',
+        gptText: diaryExistsMsg,
+        sessionId: sessionId,
+      })
+    );
+
+    // 음성 데이터 전송
+    if (audioContent) {
+      ws.send(audioContent);
+    }
+    return;
+  }
 
   // 대화 세션 찾기
   let chatSession = await ChatSession.findOne({
