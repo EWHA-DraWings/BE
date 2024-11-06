@@ -1,5 +1,4 @@
-// 1004 ver - 일기 2개만 있어도 기억 점수 측정 가능하도록
-// 기억점수 측정용(웹소켓 통신 이용)
+// 1029 ver - 프론트로 보내는 데이터 수정
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const { speechToText } = require("../utils/stt");
@@ -10,60 +9,61 @@ const MemoryScore = require('../models/MemoryScore');
 const Diary = require('../models/Diary');
 const GuardianUser = require('../models/GuardianUser');
 
-let userConversations = {}; // 사용자별로 conversations를 관리하는 객체
+let userConversations = {}; // 사용자별 대화 관리 객체
 
-// WebSocket 서버 시작
+// WebSocket 서버 시작 함수
 function startWebSocketServer(server) {
   const wssMemory = new WebSocket.Server({ noServer: true });
 
-  wssMemory .on('connection', (ws) => {
+  wssMemory.on('connection', (ws) => {
     console.log('클라이언트가 WebSocket에 연결되었습니다.');
-    let isAuthenticated = false;
-    let userId = null;
+    let isAuthenticated = false; // 인증 여부 확인
+    let userId = null; // 사용자 ID 저장
 
+    // WebSocket 메시지 수신 시 처리
     ws.on('message', async (message) => {
-      const receivedMessage = message.toString();  // Buffer를 문자열로 변환
-      console.log('서버가 받은 메시지:', receivedMessage);  // 메시지 로그 추가
+      const receivedMessage = message.toString(); // Buffer를 문자열로 변환
+      console.log('서버가 받은 메시지:', receivedMessage);
       
       try {
+        // 인증되지 않은 상태에서 JWT 토큰 인증 처리
         if (!isAuthenticated && typeof receivedMessage === 'string') {
-          // JWT 토큰 인증 처리
-          const parsedMessage = JSON.parse(receivedMessage);
-          console.log('파싱된 메시지:', parsedMessage);  // 파싱된 메시지 로그 추가
-          console.log('받은 토큰:', parsedMessage.token);  // 토큰 로그 추가
+          const parsedMessage = JSON.parse(receivedMessage); // JSON 파싱
+          console.log('파싱된 메시지:', parsedMessage);
+          console.log('받은 토큰:', parsedMessage.token);
 
-          if (parsedMessage.type === 'auth') {
+          if (parsedMessage.type === 'auth') { // 'auth' 타입일 경우 JWT 토큰 검증
             let token = parsedMessage.token;
-
             if (token && token.startsWith('Bearer ')) {
               token = token.split(' ')[1];
-              console.log("최종 토큰 값:", token);  // 토큰이 올바르게 파싱되었는지 확인
+              console.log("최종 토큰 값:", token);
             }
 
             // JWT 검증
             jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
               if (err) {
-                console.log("Invalid token:", err);  // JWT 검증 실패 로그 추가
+                console.log("Invalid token:", err); // JWT 검증 실패 로그
                 ws.send(JSON.stringify({ error: 'Invalid token' }));
-                ws.close();
+                ws.close(); // 인증 실패 시 연결 종료
               } else {
                 console.log("Token verified successfully:", decoded);
                 isAuthenticated = true;
-                userId = decoded.id;  // 확인: JWT 토큰에서 userId를 어떻게 저장했는지 확인
-                ws.send(JSON.stringify({ message: 'Authenticated' }));
+                userId = decoded.id; // 인증 성공 후 사용자 ID 설정
+                ws.send(JSON.stringify({ message: 'Authenticated' })); // 인증 성공 응답
 
-                // 챗봇의 첫 인사말 전송
+                // 첫 인사말 전송
                 const greetingMessage = "안녕하세요! 소담이에요, 이제 기억 점수 측정을 시작해볼까요?";
                 userConversations[userId] = [{ role: 'assistant', content: greetingMessage }];
                 ws.send(JSON.stringify({
+                  type: 'message',
                   conversations: userConversations[userId],
                   messageFromChatGPT: greetingMessage
                 }));
 
-                // TTS 변환 및 음성 전송
+                // TTS 변환 후 음성 데이터 전송
                 textToSpeechConvert(greetingMessage).then(ttsResponse => {
                   if (ttsResponse && Buffer.isBuffer(ttsResponse)) {
-                    ws.send(ttsResponse); // 음성 데이터를 WebSocket을 통해 전송
+                    ws.send(ttsResponse);
                   } else {
                     console.error("TTS 변환 실패:", ttsResponse);
                     ws.send(JSON.stringify({ error: 'TTS 변환에 실패했습니다.' }));
@@ -72,30 +72,31 @@ function startWebSocketServer(server) {
               }
             });
           }
-        } else if (isAuthenticated && Buffer.isBuffer(message)) {
-          console.log("음성 데이터 수신");  // 음성 데이터 수신 로그
-          
-          if (!userId) {
+        } else if (isAuthenticated && Buffer.isBuffer(message)) { // 인증된 상태에서 음성 데이터 수신 시
+          console.log("음성 데이터 수신");
+
+          if (!userId) { // 사용자 ID가 없을 경우 오류 전송
             console.log("userId가 설정되지 않았습니다.");
             ws.send(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }));
             return;
           }
 
-          // 음성 데이터 처리 (Buffer 형태로 전송된 음성 파일 처리)
+          // 사용자 조회
           const user = await ElderlyUser.findById(userId);
-          if (!user) {
-            console.log("userId로 ElderlyUser를 찾지 못했습니다. userId:", userId); // 추가 로그
+          if (!user) { // 사용자 없을 경우 오류 전송
+            console.log("userId로 ElderlyUser를 찾지 못했습니다. userId:", userId);
             ws.send(JSON.stringify({ error: '사용자를 찾을 수 없습니다.' }));
             return;
           }
 
+          // 보호자 정보 조회
           const guardian = await GuardianUser.findOne({ phone: user.guardianPhone });
           if (!guardian) {
             ws.send(JSON.stringify({ error: '보호자를 찾을 수 없습니다.' }));
             return;
           }
 
-          // 사용자 정보
+          // 사용자 정보 생성
           const userInfo = {
             elderlyName: user.name,
             guardianPhone: guardian.phone,
@@ -110,74 +111,77 @@ function startWebSocketServer(server) {
           }
           let conversations = userConversations[userId];
 
-          // 음성 데이터를 텍스트로 변환 (STT) 후, 빈 문자열을 검사
+          // 음성 데이터를 텍스트로 변환 (STT) 후 전송
           const userTextFromAudio = await speechToText(message);
-          if (userTextFromAudio.trim().length > 0) {  // 빈 문자열이 아닌 경우에만 추가
-              conversations.push({ role: 'user', content: userTextFromAudio });
-          } else {
-              console.log("음성 인식 결과가 비어 있습니다.");
+          if (userTextFromAudio.trim().length > 0) {
+            conversations.push({ role: 'user', content: userTextFromAudio });
+
+            // 사용자 텍스트 먼저 전송
+            ws.send(
+              JSON.stringify({
+                type: "response",
+                userText: userTextFromAudio,
+                sessionId: ws.sessionId,
+              })
+            );
           }
 
-          // 최근 3일간의 일기 가져오기
+          // 최근 3일간의 일기 조회 및 최소 2개 일기 확인
+          const diaryList = [];
           const today = new Date();
           today.setHours(0, 0, 0, 0);
 
-          const diaryList = [];
           for (let i = 3; i > 0; i--) {
             let targetDate = new Date(today);
             targetDate.setDate(today.getDate() - i);
 
-            let startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-            let endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+            const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-            let diary = await Diary.findOne({ userId: user._id, date: { $gte: startOfDay, $lte: endOfDay } });
+            const diary = await Diary.findOne({ userId: user._id, date: { $gte: startOfDay, $lte: endOfDay } });
             if (diary) diaryList.push(diary);
           }
 
-          // 1개 일기만 있을 경우 오류 반환
-          if (diaryList.length < 2) {
+          if (diaryList.length < 2) { // 일기 개수가 부족할 경우 오류 전송
             ws.send(JSON.stringify({ error: '기억 점수를 측정하려면 최소 2개의 일기가 필요합니다.' }));
             return;
           }
 
-          
-          // 기억 테스트 진행 후 응답 처리
+          // 기억 테스트 진행 및 GPT 응답 생성
           const response = await memoryTest(userInfo, diaryList, conversations);
           const responseText = response.content.trim();
-          if (responseText.length > 0) {  // 빈 문자열이 아닌 경우에만 추가
-              conversations.push({ role: 'assistant', content: responseText });
-          } else {
-              console.log("챗봇 응답이 비어 있습니다.");
+          if (responseText.length > 0) {
+            conversations.push({ role: 'assistant', content: responseText });
+
+            // GPT 응답 텍스트 전송
+            ws.send(
+              JSON.stringify({
+                type: "response",
+                gptText: responseText,
+                sessionId: ws.sessionId,
+                audioSize: audioContent ? audioContent.length : null, // 음성 데이터 크기 추가
+              })
+            );
+
+            // TTS 음성 데이터 전송
+            const ttsResponse = await textToSpeechConvert(responseText);
+            if (ttsResponse && Buffer.isBuffer(ttsResponse)) {
+              ws.send(ttsResponse);
+            } else {
+              console.error("TTS 변환에 실패했거나 Buffer가 아닙니다. 응답:", ttsResponse);
+              ws.send(JSON.stringify({ error: 'TTS 변환에 실패했습니다.' }));
+            }
           }
-          
-          // 저장 전 conversations의 각 항목 확인
+
+          // 대화 내역 검증
           const isValidConversations = conversations.every(conv => conv.content && conv.content.trim().length > 0);
           if (!isValidConversations) {
-              console.error("대화 내역에 유효하지 않은 항목이 있습니다.");
-              ws.send(JSON.stringify({ error: '대화 내용에 오류가 있습니다.' }));
-              return;
+            console.error("대화 내역에 유효하지 않은 항목이 있습니다.");
+            ws.send(JSON.stringify({ error: '대화 내용에 오류가 있습니다.' }));
+            return;
           }
 
-          // TTS 변환
-          const ttsResponse = await textToSpeechConvert(responseText);
-          console.log("TTS 변환된 음성 데이터:", ttsResponse);
-
-          if (ttsResponse && Buffer.isBuffer(ttsResponse)) {
-            console.log("TTS 변환된 데이터가 Buffer입니다.");
-            ws.send(ttsResponse); // 음성 데이터를 WebSocket을 통해 전송
-          } else {
-            console.error("TTS 변환에 실패했거나 Buffer가 아닙니다. 응답:", ttsResponse);
-            ws.send(JSON.stringify({ error: 'TTS 변환에 실패했습니다.' }));
-          }
-
-          // 응답 메시지와 함께 전송
-          ws.send(JSON.stringify({
-            conversations: conversations,
-            messageFromChatGPT: responseText,
-            nextAction: "사용자의 응답을 기다리고 있습니다."
-          }));
-
-          // 테스트 완료 여부 확인
+          // 테스트 완료 시 결과 전송
           if (response.isTestCompleted || response.content.includes('결과를 알려드릴게요')) {
             const questionCnt = parseInt(response.content.match(/전체 질문 개수: (\d+)/)[1]);
             const correctCnt = parseInt(response.content.match(/정답 개수: (\d+)/)[1]);
@@ -186,18 +190,18 @@ function startWebSocketServer(server) {
             const diaryIds = diaryList.map(diary => diary._id);
             const { correctRatio, score: cdrScore } = calculateCdrScore(questionCnt, correctCnt, hintCnt);
 
-            // conversations에서 빈 content가 있는 대화 제거
+            // conversations에서 빈 content가 있는 대화 제거 후 저장
             const filteredConversations = conversations.filter(conv => conv.content && conv.content.trim() !== '');
 
             const memoryScore = new MemoryScore({
               userId: user._id,
-              diaryIds: diaryIds,
-              questionCnt: questionCnt,
-              hintCnt: hintCnt,
-              correctCnt: correctCnt,
-              correctRatio: correctRatio,
-              cdrScore: cdrScore,
-              conversations: filteredConversations // 수정된 부분
+              diaryIds,
+              questionCnt,
+              hintCnt,
+              correctCnt,
+              correctRatio,
+              cdrScore,
+              conversations: filteredConversations
             });
 
             try {
@@ -206,24 +210,21 @@ function startWebSocketServer(server) {
             } catch (error) {
               console.error('Failed to save MemoryScore:', error);
               ws.send(JSON.stringify({ error: '기억 점수 저장 중 오류가 발생했습니다.' }));
-              return; // 오류가 발생하면 이후 프로세스 중단
+              return;
             }
 
-            let recommendationMessage = '';
-            if (cdrScore == 0.5 || cdrScore == 1) {
-              recommendationMessage = "CDR 기억점수가 낮습니다. 자가진단을 추천드립니다.";
-            } else {
-              recommendationMessage = "축하합니다! 좋은 기억력을 가지고 계시네요.";
-            }
+            // 추천 메시지 생성 및 결과 전송
+            const recommendationMessage = cdrScore == 0.5 || cdrScore == 1
+              ? "CDR 기억점수가 낮습니다. 자가진단을 추천드립니다."
+              : "축하합니다! 좋은 기억력을 가지고 계시네요.";
 
-            // 테스트가 완료되었을 때 추가 정보 전송
             ws.send(JSON.stringify({
               message: '기억 테스트가 완료되었습니다.',
-              cdrScore: cdrScore,
-              correctRatio: correctRatio,
-              questionCnt: questionCnt,
-              hintCnt: hintCnt,
-              correctCnt: correctCnt,
+              cdrScore,
+              correctRatio,
+              questionCnt,
+              hintCnt,
+              correctCnt,
               recommendation: recommendationMessage,
               nextAction: '테스트가 종료되었습니다.'
             }));

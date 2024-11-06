@@ -5,6 +5,7 @@ const { OpenAI } = require("openai");
 // 기억점수 프롬프트 생성 함수
 async function createScorePrompt(userInfo, diaryList) {
   let score_prompt = `
+<Your role>
 당신은 사용자의 일기를 바탕으로 '기억 점수'를 측정하는 챗봇입니다. 질문은 반드시 하나씩만 제공하고, 사용자의 응답을 받은 후에만 다음 질문을 제공해야 합니다. 질문은 구체적이어야 하며, 동일하거나 비슷한 질문은 반복하지 않습니다. 사용자가 질문에 답하지 못하거나 틀린 답을 했을 때만 힌트를 하나씩 제공합니다.
 
 <Requirements>

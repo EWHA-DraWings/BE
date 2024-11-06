@@ -1,4 +1,4 @@
-// 0916 ver - 감정분석+리포트 동시에
+// 1106ver - 리포트 존재 여부 확인 후 일기 존재 여부 확인하도록 수정
 const asyncHandler = require('express-async-handler');
 const axios = require('axios');
 const Report = require('../models/Report');
@@ -49,7 +49,15 @@ const getOrCreateReport = asyncHandler(async (req, res) => {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
 
+    // 리포트를 먼저 조회
+    let report = await Report.findOne({ userId: userId, date: { $gte: startOfDay, $lte: endOfDay } });
 
+    if (report) {
+      // 이미 리포트가 존재하면 해당 리포트를 반환
+      return res.status(200).json(report);
+    }
+
+    // 리포트가 없는 경우에만 일기를 조회
     const diary = await Diary.findOne({
       userId: userId,
       date: { $gte: startOfDay, $lte: endOfDay },
@@ -59,49 +67,43 @@ const getOrCreateReport = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: '해당 날짜에 대한 일기를 찾을 수 없습니다.' });
     }
 
-    let report = await Report.findOne({ userId: userId, diaryId: diary._id });
+    // 감정 분석, MemoryScore, Report 생성 로직
+    let emotionAnalysis = await EmotionAnalysis.findOne({ diaryId: diary._id });
 
-    if (!report) {
-      let emotionAnalysis = await EmotionAnalysis.findOne({ diaryId: diary._id });
-
-      if (!emotionAnalysis) {
-        const emotions = await analyzeDiary(diary.content);
-        emotionAnalysis = new EmotionAnalysis({ userId, diaryId: diary._id, emotions });
-        await emotionAnalysis.save();
-      }
-
-      const memoryScore = await MemoryScore.findOne({
-        userId: userId,
-        date: { $gte: new Date(startOfDay), $lte: new Date(endOfDay) },
-      });
-      console.log('MemoryScore 조회 조건:', {
-        userId: userId,
-        dateRange: { $gte: new Date(startOfDay), $lte: new Date(endOfDay) }
-      });
-      
-      report = new Report({
-        userId,
-        diaryId: diary._id,
-        date: diary.date,
-        cdrScore: memoryScore ? memoryScore.cdrScore : null,
-        correctRatio: memoryScore ? memoryScore.correctRatio : null,
-        questionCnt: memoryScore ? memoryScore.questionCnt : null,
-        correctCnt: memoryScore ? memoryScore.correctCnt : null,
-        hintCnt: memoryScore ? memoryScore.hintCnt : null,
-        memoryScoreId: memoryScore ? memoryScore._id : null,
-        emotions: emotionAnalysis.emotions,
-        conditions: diary.healthStatus,
-      });
-
-      await report.save();
+    if (!emotionAnalysis) {
+      const emotions = await analyzeDiary(diary.content);
+      emotionAnalysis = new EmotionAnalysis({ userId, diaryId: diary._id, emotions });
+      await emotionAnalysis.save();
     }
 
+    const memoryScore = await MemoryScore.findOne({
+      userId: userId,
+      date: { $gte: new Date(startOfDay), $lte: new Date(endOfDay) },
+    });
+
+    report = new Report({
+      userId,
+      diaryId: diary._id,
+      date: diary.date,
+      cdrScore: memoryScore ? memoryScore.cdrScore : null,
+      correctRatio: memoryScore ? memoryScore.correctRatio : null,
+      questionCnt: memoryScore ? memoryScore.questionCnt : null,
+      correctCnt: memoryScore ? memoryScore.correctCnt : null,
+      hintCnt: memoryScore ? memoryScore.hintCnt : null,
+      memoryScoreId: memoryScore ? memoryScore._id : null,
+      emotions: emotionAnalysis.emotions,
+      conditions: diary.healthStatus,
+    });
+
+    await report.save();
     res.status(200).json(report);
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: '리포트 조회 또는 생성 중 오류가 발생했습니다.', error: error.message });
   }
 });
+
 
 // 과거 3일 리포트 자동 생성
 const getReportsForLastDays = asyncHandler(async (req, res) => {
