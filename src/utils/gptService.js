@@ -1,4 +1,4 @@
-// 1013ver - 일기, 컨디션, 자녀에게 전하고 싶은 말 기록용 챗봇
+// 1106ver - 파싱 수정
 require('dotenv').config();
 const { OpenAI } = require("openai");
 const ChatSession = require('../models/ChatSession');
@@ -145,6 +145,7 @@ async function generateDiary(conversations, userId) {
 }
 
 // 섹션 추출 함수
+// 섹션 추출 함수 (제목 제거 포함)
 function extractSection(text, title) {
   const regex = new RegExp(
     `(?:\\*\\*${title}\\*\\*|### ${title})[\\s\\S]*?(?=(?:\\n(?:\\*\\*[\\s\\S]*?|### [\\s\\S]*?)\\n|$))`,
@@ -155,10 +156,11 @@ function extractSection(text, title) {
   if (match) {
     // 제목과 공백 제거
     const formattedTitle = title.includes('###') ? `### ${title}` : `**${title}**`;
-    return match[0].replace(`${formattedTitle}\n`, '').trim();
+    return match[0].replace(`### ${title}`, '').trim(); // 제목을 제거하고 반환
   }
   
   return null;
 }
+
 
 module.exports = { callChatgpt, generateDiary };
