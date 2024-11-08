@@ -1,4 +1,4 @@
-// 1029 ver - 프론트로 보내는 데이터 수정
+// 1108 ver
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const { speechToText } = require("../utils/stt");
@@ -56,7 +56,6 @@ function startWebSocketServer(server) {
                 userConversations[userId] = [{ role: 'assistant', content: greetingMessage }];
                 ws.send(JSON.stringify({
                   type: 'message',
-                  conversations: userConversations[userId],
                   messageFromChatGPT: greetingMessage
                 }));
 
@@ -105,18 +104,12 @@ function startWebSocketServer(server) {
             job: guardian.job,
           };
 
-          // 대화 기록이 없으면 초기화
-          if (!userConversations[userId]) {
-            userConversations[userId] = [];
-          }
-          let conversations = userConversations[userId];
-
           // 음성 데이터를 텍스트로 변환 (STT) 후 전송
           const userTextFromAudio = await speechToText(message);
           if (userTextFromAudio.trim().length > 0) {
-            conversations.push({ role: 'user', content: userTextFromAudio });
+            userConversations[userId] = [{ role: 'user', content: userTextFromAudio }]; // 최신 사용자 텍스트로 업데이트 (수정된 부분)
 
-            // 사용자 텍스트 먼저 전송
+            // 사용자 텍스트만 전송
             ws.send(
               JSON.stringify({
                 type: "response",
@@ -148,10 +141,10 @@ function startWebSocketServer(server) {
           }
 
           // 기억 테스트 진행 및 GPT 응답 생성
-          const response = await memoryTest(userInfo, diaryList, conversations);
+          const response = await memoryTest(userInfo, diaryList, userConversations[userId]);
           const responseText = response.content.trim();
           if (responseText.length > 0) {
-            conversations.push({ role: 'assistant', content: responseText });
+            userConversations[userId] = [{ role: 'assistant', content: responseText }]; // GPT 응답 (수정된 부분)
 
             // GPT 응답 텍스트 전송
             ws.send(
@@ -159,7 +152,6 @@ function startWebSocketServer(server) {
                 type: "response",
                 gptText: responseText,
                 sessionId: ws.sessionId,
-                audioSize: audioContent ? audioContent.length : null, // 음성 데이터 크기 추가
               })
             );
 
@@ -173,14 +165,6 @@ function startWebSocketServer(server) {
             }
           }
 
-          // 대화 내역 검증
-          const isValidConversations = conversations.every(conv => conv.content && conv.content.trim().length > 0);
-          if (!isValidConversations) {
-            console.error("대화 내역에 유효하지 않은 항목이 있습니다.");
-            ws.send(JSON.stringify({ error: '대화 내용에 오류가 있습니다.' }));
-            return;
-          }
-
           // 테스트 완료 시 결과 전송
           if (response.isTestCompleted || response.content.includes('결과를 알려드릴게요')) {
             const questionCnt = parseInt(response.content.match(/전체 질문 개수: (\d+)/)[1]);
@@ -191,7 +175,7 @@ function startWebSocketServer(server) {
             const { correctRatio, score: cdrScore } = calculateCdrScore(questionCnt, correctCnt, hintCnt);
 
             // conversations에서 빈 content가 있는 대화 제거 후 저장
-            const filteredConversations = conversations.filter(conv => conv.content && conv.content.trim() !== '');
+            const filteredConversations = userConversations[userId].filter(conv => conv.content && conv.content.trim() !== ''); // (수정된 부분)
 
             const memoryScore = new MemoryScore({
               userId: user._id,
