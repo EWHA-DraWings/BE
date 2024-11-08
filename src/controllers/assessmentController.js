@@ -68,13 +68,23 @@ exports.createAssessment = asyncHandler(async (req, res) => {
 // 특정 사용자의 자가진단 결과 조회
 exports.getAssessmentsByUser = asyncHandler(async (req, res) => {
   try {
-    const { questionnaireType } = req.params;
     const userId = req.user._id; // JWT 토큰에서 추출한 userId
-
-    const assessments = await Assessment.find({
+    
+    let assessments = await Assessment.find({
       userId,
-      questionnaireType
     });
+    console.log(assessments);
+
+
+     //보호자 사용자인 경우 노인 사용자 아이디를 찾는 추가 작업 필요
+     if (req.user.role === "guardian"){
+      const guardian = await GuardianUser.findById(userId);
+      const elderly=await ElderlyUser.findOne({name:guardian.elderlyName, guardianPhone: guardian.phone});
+      let assessments2= await Assessment.find({userId:elderly._id});
+      assessments.push(...assessments2); 
+      assessments.sort((a, b) => b.date - a.date); //날짜 최근부터
+      console.log(assessments);
+     }
 
     if (assessments.length === 0) {
       return res.status(404).json({ message: '자가진단 결과를 찾을 수 없습니다.' });
