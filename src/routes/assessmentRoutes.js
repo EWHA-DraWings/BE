@@ -8,8 +8,8 @@ const { protect } = require('../middleware/authMiddleware'); // JWT 검증 미�
 router.post('/', protect, assessmentController.createAssessment);
 
 // 특정 사용자의 자가진단 결과 조회 (KDSQ 또는 PRMQ)
-router.get('/user/:questionnaireType', protect, assessmentController.getAssessmentsByUser);
-
+//router.get('/user/:questionnaireType', protect, assessmentController.getAssessmentsByUser);
+router.get('/user', protect, assessmentController.getAssessmentsByUser);
 
 // 특정 날짜의 자가진단 결과 조회
 router.get('/:date', protect, assessmentController.getAssessmentsByDate);
