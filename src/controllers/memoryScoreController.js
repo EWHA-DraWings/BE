@@ -1,4 +1,3 @@
-// 1029 ver - 프론트로 보내는 데이터 수정
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const { speechToText } = require("../utils/stt");
@@ -54,12 +53,7 @@ function startWebSocketServer(server) {
                 // 첫 인사말 전송
                 const greetingMessage = "안녕하세요! 소담이에요, 이제 기억 점수 측정을 시작해볼까요?";
                 userConversations[userId] = [{ role: 'assistant', content: greetingMessage }];
-                ws.send(JSON.stringify({
-                  type: 'message',
-                  conversations: userConversations[userId],
-                  messageFromChatGPT: greetingMessage
-                }));
-
+                
                 // TTS 변환 후 음성 데이터 전송
                 textToSpeechConvert(greetingMessage).then(ttsResponse => {
                   if (ttsResponse && Buffer.isBuffer(ttsResponse)) {
@@ -96,15 +90,6 @@ function startWebSocketServer(server) {
             return;
           }
 
-          // 사용자 정보 생성
-          const userInfo = {
-            elderlyName: user.name,
-            guardianPhone: guardian.phone,
-            address: guardian.address,
-            birth: guardian.birth,
-            job: guardian.job,
-          };
-
           // 대화 기록이 없으면 초기화
           if (!userConversations[userId]) {
             userConversations[userId] = [];
@@ -116,11 +101,11 @@ function startWebSocketServer(server) {
           if (userTextFromAudio.trim().length > 0) {
             conversations.push({ role: 'user', content: userTextFromAudio });
 
-            // 사용자 텍스트 먼저 전송
+            // 사용자 텍스트만 전송
             ws.send(
               JSON.stringify({
                 type: "response",
-                userText: userTextFromAudio,
+                userText: userTextFromAudio, // 사용자가 말한 텍스트
                 sessionId: ws.sessionId,
               })
             );
@@ -153,11 +138,11 @@ function startWebSocketServer(server) {
           if (responseText.length > 0) {
             conversations.push({ role: 'assistant', content: responseText });
 
-            // GPT 응답 텍스트 전송
+            // GPT 응답 텍스트만 전송
             ws.send(
               JSON.stringify({
                 type: "response",
-                gptText: responseText,
+                gptText: responseText, // GPT의 응답 텍스트
                 sessionId: ws.sessionId,
                 audioSize: audioContent ? audioContent.length : null, // 음성 데이터 크기 추가
               })
@@ -171,14 +156,6 @@ function startWebSocketServer(server) {
               console.error("TTS 변환에 실패했거나 Buffer가 아닙니다. 응답:", ttsResponse);
               ws.send(JSON.stringify({ error: 'TTS 변환에 실패했습니다.' }));
             }
-          }
-
-          // 대화 내역 검증
-          const isValidConversations = conversations.every(conv => conv.content && conv.content.trim().length > 0);
-          if (!isValidConversations) {
-            console.error("대화 내역에 유효하지 않은 항목이 있습니다.");
-            ws.send(JSON.stringify({ error: '대화 내용에 오류가 있습니다.' }));
-            return;
           }
 
           // 테스트 완료 시 결과 전송
