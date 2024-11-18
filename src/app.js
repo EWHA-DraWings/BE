@@ -12,7 +12,7 @@ const diaryRoutes = require('./routes/diaryRoutes');
 const emotionAnalysisRoutes = require('./routes/emotionAnalysisRoutes');
 const memoryScoreRoutes = require('./routes/memoryScoreRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-const alarmRoutes = require('./routes/alarmRoutes'); // 알람 라우터 가져오기
+//const alarmRoutes = require('./routes/alarmRoutes'); // 알람 라우터 가져오기
 
 // 일기 생성 챗봇과 기억 점수 측정 챗봇 컨트롤러
 const { handleWebSocketMessage } = require('./controllers/chatController');
@@ -40,7 +40,7 @@ app.use('/api/diary', diaryRoutes);
 app.use('/api/emotion-analysis', emotionAnalysisRoutes);
 app.use('/api/findmemoryscore', memoryScoreRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/alarms', alarmRoutes);
+//app.use('/api/alarms', alarmRoutes);
 
 // HTTP 서버 생성
 const server = http.createServer(app);

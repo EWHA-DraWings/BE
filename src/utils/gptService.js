@@ -145,7 +145,6 @@ async function generateDiary(conversations, userId) {
 }
 
 // 섹션 추출 함수
-// 섹션 추출 함수 (제목 제거 포함)
 function extractSection(text, title) {
   const regex = new RegExp(
     `(?:\\*\\*${title}\\*\\*|### ${title})[\\s\\S]*?(?=(?:\\n(?:\\*\\*[\\s\\S]*?|### [\\s\\S]*?)\\n|$))`,
