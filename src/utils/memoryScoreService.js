@@ -125,7 +125,7 @@ function calculateCdrScore(questionCnt, correctCnt, hintCnt) {
 
   // 힌트 사용이 4개 이상인 경우 최소 점수는 0.5
   if (hintCnt >= 4) {
-      score = Math.min(score, 0.5);  // 최소 0.5 보장
+      score = Math.max(score, 0.5);  // 최소 0.5 보장
   }
 
   console.log("Calculated CDR Score:", score); // 로그로 확인
