@@ -67,7 +67,7 @@ const getLatestMemoryScores = asyncHandler(async (req, res) => {
         // 노인 사용자일 경우
         if (user instanceof ElderlyUser) {
             latestScores = await MemoryScore.find({ userId: user._id })
-                .sort({ date: 1 })  // 오래된 날짜부터 정렬 (오름차순)
+                .sort({ date: -1 })  // 오래된 날짜부터 정렬 (오름차순)
                 .limit(5)  // 5개의 데이터만 가져옴
                 .select('date cdrScore correctRatio questionCnt correctCnt'); 
 

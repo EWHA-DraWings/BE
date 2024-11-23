@@ -18,6 +18,7 @@ const analyzeDiary = async (diary) => {
         }
       }
     );
+
     console.log('Flask 서버 응답:', response.data);
     return response.data;
   } catch (error) {
