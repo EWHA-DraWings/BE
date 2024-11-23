@@ -29,7 +29,7 @@ const ReportSchema = new mongoose.Schema({
   correctRatio: { // 정답 비율
     type: Number,
     ref: 'MemoryScore',
-    set: (value) => Math.round(value * 100) / 100,
+    set: (value) => Math.round(value * 100) / 100, // 둘째 자리까지
     required: false
   },
   questionCnt: { // 전체 질문 수
