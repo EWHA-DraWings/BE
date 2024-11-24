@@ -6,6 +6,6 @@ const router = express.Router();
 // 알림 전송 라우트 
 router.post('/send-push-notice', protect, sendPushNotice); 
 // 알림 시간 수정
-router.post('/update-time', protect, updateAlarmTime);
+router.put('/update-time', protect, updateAlarmTime);
 
 module.exports = router;
