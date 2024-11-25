@@ -133,7 +133,7 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
       .exec();
 
     // 과거 3일 동안 리포트가 없을 경우 자동으로 생성
-    for (let i = 1; i < 4; i++) { // 과거 3일
+    for (let i = 1; i < 4; i++) { // 오늘 + 3일 (총 4일)
       const currentDate = new Date();
       currentDate.setDate(today.getDate() - i);
       currentDate.setHours(0, 0, 0, 0);
