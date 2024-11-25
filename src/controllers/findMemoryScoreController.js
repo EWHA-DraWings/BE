@@ -67,7 +67,7 @@ const getLatestMemoryScores = asyncHandler(async (req, res) => {
         // 노인 사용자일 경우
         if (user instanceof ElderlyUser) {
             latestScores = await MemoryScore.find({ userId: user._id })
-                .sort({ date: -1 })  // 오래된 날짜부터 정렬 (오름차순)
+                .sort({ date: -1 })  // 오래된 날짜부터 정렬
                 .limit(5)  // 5개의 데이터만 가져옴
                 .select('date cdrScore correctRatio questionCnt correctCnt'); 
 
@@ -81,7 +81,7 @@ const getLatestMemoryScores = asyncHandler(async (req, res) => {
             const elderlyUserIds = elderlyUsers.map(elderly => elderly._id);
 
             latestScores = await MemoryScore.find({ userId: { $in: elderlyUserIds } })
-                .sort({ date: 1 })  // 오래된 날짜부터 정렬 (오름차순)
+                .sort({ date: -1 })  // 오래된 날짜부터 정렬 (오름차순)
                 .limit(5)  // 5개의 데이터만 가져옴
                 .select('date cdrScore correctRatio questionCnt correctCnt'); 
 
@@ -92,6 +92,8 @@ const getLatestMemoryScores = asyncHandler(async (req, res) => {
         } else {
             return res.status(403).json({ message: '권한이 없습니다.' });
         }
+
+
 
         // 필요한 정보만
         const response = latestScores.map(score => ({

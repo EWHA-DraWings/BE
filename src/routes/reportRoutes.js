@@ -1,6 +1,7 @@
 // 1003 ver - 3일치 리포트 가져오도록 수정
 const express = require('express');
 const { getOrCreateReport, getReportsForLastDays } = require('../controllers/reportController');
+//const {getReportsForLastDays } = require('../controllers/reportController');
 const router = express.Router();
 const { protect } = require('../middleware/authMiddleware'); // JWT 검증 미들웨어
 

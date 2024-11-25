@@ -1,4 +1,4 @@
-// 1106ver - 리포트 존재 여부 확인 후 일기 존재 여부 확인하도록 수정
+// 1125ver - GET 함수에서 오늘 리포트는 생성, 가져오지 않도록 수정
 const asyncHandler = require('express-async-handler');
 const axios = require('axios');
 const Report = require('../models/Report');
@@ -123,7 +123,7 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
     // 지정된 범위 내의 리포트 찾기
     const reports = await Report.find({
       userId: userId,
-      date: { $gte: startDate, $lte: endDate },
+      date: { $gte: startDate, $lt: endDate },
     })
       .select('date cdrScore correctRatio emotions conditions')
       .populate({
@@ -133,7 +133,7 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
       .exec();
 
     // 과거 3일 동안 리포트가 없을 경우 자동으로 생성
-    for (let i = 0; i < 4; i++) { // 오늘 + 3일 (총 4일)
+    for (let i = 1; i < 4; i++) { // 과거 3일
       const currentDate = new Date();
       currentDate.setDate(today.getDate() - i);
       currentDate.setHours(0, 0, 0, 0);
@@ -161,7 +161,7 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
 
           const memoryScore = await MemoryScore.findOne({
             userId: userId,
-            date: { $gte: startOfDay, $lte: endOfDay },
+            date: { $gte: startOfDay, $lt: endOfDay },
           });
 
           report = new Report({
