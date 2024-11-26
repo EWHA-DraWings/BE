@@ -10,7 +10,7 @@ const EmotionAnalysis = require('../models/EmotionAnalysis');
 const analyzeDiary = async (diary) => {
   try {
     console.log('전송할 데이터:', { diary });
-    const response = await axios.post('http://localhost:5000/predict', 
+    const response = await axios.post('http://43.202.40.93:5000/predict', 
       { diary }, 
       {
         headers: {
