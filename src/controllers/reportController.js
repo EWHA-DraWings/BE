@@ -116,20 +116,26 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   
   try {
-    const today = new Date();
+    //const today = new Date();
+    const today = new Date('2024-11-26T00:00:00Z'); // UTC 기준
     today.setHours(0, 0, 0, 0);  // 오늘의 시작 시간 (자정)
     
     const startDate = new Date(today.getTime());  // 복사본 생성
     startDate.setDate(today.getDate() - 3);  // 3일 전부터 시작
 
     const endDate = new Date(today);
-    endDate.setHours(23, 59, 59, 999);  // 오늘의 마지막 시간
+    endDate.setDate(today.getDate() - 1); // 어제 (25일 자정 끝)
+    endDate.setHours(23, 59, 59, 999); // 어제의 마지막 시간
+
+    console.log('Start Date (UTC):', startDate.toISOString());
+    console.log('End Date (UTC):', endDate.toISOString());
 
     // 지정된 범위 내의 리포트 찾기
     const reports = await Report.find({
       userId: userId,
       date: { $gte: startDate, $lt: endDate },
     })
+      .sort({ date: 1 }) // 날짜 오름차순 정렬
       .select('date cdrScore correctRatio emotions conditions')
       .populate({
         path: 'diaryId',
