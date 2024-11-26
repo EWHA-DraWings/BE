@@ -15,6 +15,11 @@ const AlarmSchema = new mongoose.Schema({
     type: Number, 
     required: true 
   },  // 알림 설정 시간 (분)
+  deviceTokens: [{
+    type: String, 
+    unique: true, 
+    required: true 
+  }],  // FCM 기기 토큰 배열
 }, {
   timestamps: true  // 생성 시간과 수정 시간을 자동으로 기록
 });

@@ -69,38 +69,51 @@ const sendPushNotice = asyncHandler(async (req, res) => {
 // 알람 시간 수정 컨트롤러
 const updateAlarmTime = asyncHandler(async (req, res) => {
   const userId = req.user._id;  // JWT 인증에서 추출된 사용자 ID
-  const { hour, minute } = req.body;  // 클라이언트에서 전달받은 시간과 분
+  const { hour, minute, deviceToken } = req.body;  // 클라이언트에서 전달받은 시간과 분
 
   // 시간과 분의 유효성 검사 (0-23 시간, 0-59 분)
-  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
     return res.status(400).json({ message: '유효하지 않은 시간 또는 분입니다.' });
   }
 
+  if (!deviceToken) {
+    return res.status(400).json({ message: '기기 토큰이 필요합니다.' });
+  }
   try {
-    // 사용자의 알림 설정을 찾아 업데이트
+    // 사용자 알람 설정 가져오기
     let alarm = await Alarm.findOne({ userId });
 
     if (alarm) {
-      // 기존 알람 설정이 있을 경우 업데이트
+      // 기존 알람 설정이 있는 경우 업데이트
       alarm.hour = hour;
       alarm.minute = minute;
-      await alarm.save();
+
+      // 기기 토큰 중복 저장 방지
+      if (!alarm.deviceTokens.includes(deviceToken)) {
+        console.log('새로운 기기 토큰 추가:', deviceToken);
+        alarm.deviceTokens.push(deviceToken); // 새로운 토큰 추가
+      } else {
+        console.log('기기 토큰이 이미 존재합니다:', deviceToken);
+      }
+
+      await alarm.save(); // 저장
     } else {
-      // 알람 설정이 없을 경우 새로 생성
+      // 알람 설정이 없는 경우 새로 생성
       alarm = new Alarm({
         userId,
         hour,
         minute,
-        pushId: Date.now(), // pushId를 고유한 값으로 생성
+        deviceTokens: [deviceToken],
+        pushId: Date.now(), // 고유 pushId 생성
       });
-      await alarm.save();
+
+      await alarm.save(); // 저장
     }
 
-    res.status(200).json({ message: '알림 시간이 업데이트되었습니다.', alarm });
-
+    res.status(200).json({ message: '알람 시간과 기기 토큰이 저장되었습니다.', alarm });
   } catch (error) {
-    console.error('알람 시간 수정 중 오류 발생:', error);
-    res.status(500).json({ message: '알람 시간 수정에 실패했습니다.', error });
+    console.error('알람 시간 및 기기 토큰 저장 중 오류 발생:', error);
+    res.status(500).json({ message: '알람 시간 및 기기 토큰 저장에 실패했습니다.', error });
   }
 });
 

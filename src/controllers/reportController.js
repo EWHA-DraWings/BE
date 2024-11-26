@@ -40,46 +40,50 @@ const getOrCreateReport = asyncHandler(async (req, res) => {
   const { date } = req.params;
 
   try {
+    // 날짜 형식 확인
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
     if (!date.match(dateRegex)) {
       return res.status(400).json({ message: '날짜 형식이 올바르지 않습니다. YYYY-MM-DD 형식이어야 합니다.' });
     }
 
-    const targetDate = new Date(`${date}T00:00:00.000Z`);
-    const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
+    // 요청 날짜를 UTC 기준으로 설정
+    const targetDate = new Date(date); // YYYY-MM-DDT00:00:00Z (로컬 시간)
+    const startOfDay = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0)); // UTC 자정
+    const endOfDay = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999)); // UTC 23:59:59.999
 
-    // 리포트를 먼저 조회
-    let report = await Report.findOne({ userId: userId, date: { $gte: startOfDay, $lte: endOfDay } });
+    console.log('요청 날짜:', date);
+    console.log('Start of Day (UTC):', startOfDay.toISOString());
+    console.log('End of Day (UTC):', endOfDay.toISOString());
+
+    // 오늘 리포트 조회
+    let report = await Report.findOne({
+      userId: userId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+    });
 
     if (report) {
-      // 이미 리포트가 존재하면 해당 리포트를 반환
+      console.log('오늘 리포트를 반환합니다:', report);
       return res.status(200).json(report);
     }
 
-    // 리포트가 없는 경우에만 일기를 조회
+    // 오늘 일기 조회
     const diary = await Diary.findOne({
       userId: userId,
       date: { $gte: startOfDay, $lte: endOfDay },
     });
 
     if (!diary) {
-      return res.status(404).json({ message: '해당 날짜에 대한 일기를 찾을 수 없습니다.' });
+      console.log('오늘 날짜에 일기가 없습니다.');
+      return res.status(404).json({ message: '오늘 날짜에 대한 일기가 없습니다.' });
     }
 
-    // 감정 분석, MemoryScore, Report 생성 로직
-    let emotionAnalysis = await EmotionAnalysis.findOne({ diaryId: diary._id });
-
-    if (!emotionAnalysis) {
-      const emotions = await analyzeDiary(diary.content);
-      emotionAnalysis = new EmotionAnalysis({ userId, diaryId: diary._id, emotions });
-      await emotionAnalysis.save();
-    }
+    // 감정 분석, MemoryScore 조회 및 리포트 생성
+    const emotionAnalysis = await EmotionAnalysis.findOne({ diaryId: diary._id }) ||
+      new EmotionAnalysis({ userId, diaryId: diary._id, emotions: await analyzeDiary(diary.content) });
 
     const memoryScore = await MemoryScore.findOne({
       userId: userId,
-      date: { $gte: new Date(startOfDay), $lte: new Date(endOfDay) },
+      date: { $gte: startOfDay, $lte: endOfDay },
     });
 
     report = new Report({
@@ -100,10 +104,11 @@ const getOrCreateReport = asyncHandler(async (req, res) => {
     res.status(200).json(report);
 
   } catch (error) {
-    console.error(error);
+    console.error('오류 발생:', error);
     res.status(500).json({ message: '리포트 조회 또는 생성 중 오류가 발생했습니다.', error: error.message });
   }
 });
+
 
 
 // 과거 3일 리포트 자동 생성
