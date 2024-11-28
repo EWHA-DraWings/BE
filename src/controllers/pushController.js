@@ -19,8 +19,13 @@ const sendPushNotice = asyncHandler(async (req, res) => {
   let hour = alarm.hour ?? 17;
   let minute = alarm.minute ?? 0;
 
+  // 한국 시간대로 변환
+  const kstTime = moment.tz({ hour, minute }, 'Asia/Seoul');
+  const kstHour = kstTime.hour();
+  const kstMinute = kstTime.minute();
+
   // 클라이언트에서 전달받은 사용자 토큰
-  const registrationToken = 'Registration token from the client'; // 클라이언트에서 토큰을 받아와야 함
+  const registrationToken = alarm.deviceTokens; // 클라이언트에서 토큰을 받아와야 함
 
   try {
     // 푸시 알림 메시지 정의
@@ -44,8 +49,8 @@ const sendPushNotice = asyncHandler(async (req, res) => {
     }
 
     // 특정 시간에 푸시 알림을 스케줄링
-    let pushNotice = schedule.scheduleJob(`${minute} ${hour} * * *`, function() {
-      console.log(`${minute}분 ${hour}시에 알림 전송`);
+    let pushNotice = schedule.scheduleJob(`${kstMinute} ${kstHour} * * *`, function() {
+      console.log(`${kstMinute}분 ${kstHour}시에 알림 전송`);
 
       // Firebase를 통해 메시지 전송
       messaging().sendMulticast(message)
