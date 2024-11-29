@@ -10,7 +10,7 @@ require('moment-timezone');
 const sendPushNotice = asyncHandler(async (req, res) => {
   console.log("sendPushNotice 호출됨"); 
   const userId = req.user._id;  // JWT 인증을 통해 userId 추출
-  console.log(`sendPushNotice: userID ${userID}`); 
+  console.log(`sendPushNotice: userID ${userId}`); 
   // 알림 설정을 사용자의 userId로 조회
   const alarm = await Alarm.findOne({ userId }); // 사용자별로 알림 설정 가져오기
 
