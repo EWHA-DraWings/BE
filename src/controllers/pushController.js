@@ -39,6 +39,7 @@ const sendPushNotice = asyncHandler(async (req, res) => {
     const message = {
       notification: {
         title: '일기를 작성할 시간이에요!',
+        body: '소담이와 일기를 작성하러 가요!',
       },
       android: {
         priority:"high",
@@ -51,20 +52,22 @@ const sendPushNotice = asyncHandler(async (req, res) => {
       topic: '일기 작성 알림',
     };
     console.log(message);
+    
 
+    console.log('스케줄 작업들:', schedule.scheduledJobs); // 예약된 모든 작업을 출력해서 확인
      // 기존 스케줄 작업이 있으면 취소 (중복 스케줄 방지)
-     if (schedule.scheduledJobs[userId]) {
+    if (schedule.scheduledJobs[userId]) {
       console.log(`이미 스케줄링 되어있음`);
       schedule.scheduledJobs[userId].cancel();
     }
 
     // 특정 시간에 푸시 알림을 스케줄링
-    schedule.scheduleJob(`0 ${kstMinute} ${kstHour} * * *`, function() {
+    const job=schedule.scheduleJob(`0 ${kstMinute} ${kstHour} * * *`, function() {
       console.log(`스케줄링 시작`);
       console.log(`${kstMinute}분 ${kstHour}시에 알림 전송`);
-
+      
       // Firebase를 통해 메시지 전송
-      messaging().send(message)
+      messaging.send(message)
         .then((response) => {
           console.log('메시지 알림 전송 성공', response);
         })
@@ -72,6 +75,8 @@ const sendPushNotice = asyncHandler(async (req, res) => {
           console.error('메시지 알림 전송 중 에러 발생', error);
         });
     });
+
+    schedule.scheduledJobs[userId]=job;
 
     // 성공적으로 스케줄링되었음을 클라이언트에 응답
     console.log('스케줄링 성공');
