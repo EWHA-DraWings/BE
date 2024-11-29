@@ -41,6 +41,7 @@ const sendPushNotice = asyncHandler(async (req, res) => {
         title: '일기를 작성할 시간이에요!',
       },
       android: {
+        priority:"high",
         notification: {
           icon: 'stock_ticker_update',
           color: '#7e55c3',
@@ -58,7 +59,7 @@ const sendPushNotice = asyncHandler(async (req, res) => {
     }
 
     // 특정 시간에 푸시 알림을 스케줄링
-    let pushNotice = schedule.scheduleJob(`${kstMinute} ${kstHour} * * *`, function() {
+    schedule.scheduleJob(`0 ${kstMinute} ${kstHour} * * *`, function() {
       console.log(`스케줄링 시작`);
       console.log(`${kstMinute}분 ${kstHour}시에 알림 전송`);
 
