@@ -117,7 +117,7 @@ const getReportsForLastDays = asyncHandler(async (req, res) => {
   
   try {
     //const today = new Date();
-    const today = new Date('2024-11-26T00:00:00Z'); // UTC 기준(26일 고정)
+    const today = new Date(); // UTC 기준(26일 고정)
     today.setHours(0, 0, 0, 0);  // 오늘의 시작 시간 (자정)
     
     const startDate = new Date(today.getTime());  // 복사본 생성
