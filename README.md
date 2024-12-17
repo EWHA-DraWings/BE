@@ -112,10 +112,10 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/myDatabase
 
 <br><br>
 ## 📜How to test
-1. APK 테스트
+1. APK 테스트<br>
    프론트엔드와 백엔드가 통합된 APK 테스트는 https://github.com/EWHA-DraWings/FE의 README를 참고해주세요.
 
-2. 백엔드 테스트
+2. 백엔드 테스트<br>
    로컬 서버에서 실행한 후, API 명세서에 명시된 기능별 URL로 접속하여 예시 입력값으로 테스트를 진행합니다.
    - 테스트 계정: "id": "jonggang", "password": "20240929"
    - 음성 대화는 APK 테스트에서만 실행이 가능합니다. 백엔드 테스트를 통해서는 회원가입, 로그인, 리포트 조회, 일기 수정.조회 기능만 확인 가능합니다.
