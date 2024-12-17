@@ -43,7 +43,7 @@
 - Google cloud Text-to-Speech: https://cloud.google.com/text-to-speech?hl=ko
 - Naver CLOVA Speech Recognition: https://www.ncloud.com/product/aiService/csr
 - node.js
-
+<br><br>
 
 ## Source 코드 설명
 - ```userController```: 보호자 사용자, 노인 사용자 회원가입 담당 코드 & 아이디 중복 확인 & 비밀번호 해싱
@@ -58,7 +58,8 @@
   - ```utils/tts```: gpt 응답을 음성으로 변환하는 역할
 - ```reportController```: 플라스크 서버로 감정 분석 요청 & 감정 분석 결과, 기억점수 결과, 자가진단 결과 생성 및 조회
 
-  
+<br><br>
+
 ## How to build🔨
 1. Ubuntu 서버 접속
 AWS에서 EC2 인스턴스를 생성한 후, 아래 명령어를 통해 서버에 접속하기
@@ -87,6 +88,7 @@ npm install -g pm2
 pm2 start src/app.js
 ```
 
+<br><br>
 ## How to install🛠️
 1. 키 발급받기
 - Google cloud Text-to-Speech Key
@@ -108,7 +110,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/myDatabase
 - .env 파일을 BE 폴더에 생성
 - ```cat /home/ubuntu/Sodam/.env``` 로  .env 파일에 MONGODB_URI, Port 번호, JWT_SECRET, STT KEY, TTS KEY, OpenAI API KEY 작성
 
-
+<br><br>
 ## How to test📜
 1. APK 테스트
    프론트엔드와 백엔드가 통합된 APK 테스트는 https://github.com/EWHA-DraWings/FE의 README를 참고해주세요.
