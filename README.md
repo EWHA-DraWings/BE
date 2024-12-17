@@ -1,13 +1,13 @@
 # 캡스톤디자인 그로쓰 05팀 그린나래 BE 레포
 
-### Members😄
+### 😄Members
 - 프로젝트 기간: 24.03~24.12
 - 김여은: FE(리더), BE
 - 우정아: BE(리더), AI
 - 장서연: AI(리더), FE
 <br><br>
 
-## 프로젝트 소개📂
+## 📂프로젝트 소개
 ✔️ 서비스명: 소담 - 소리로 담는 나만의 작은 이야기
 
 ✔️ 주제: 노인 인지 기능 저하 예방을 위한 GPT-4o 기반 음성 챗봇 및 일기 생성 서비스
@@ -16,7 +16,7 @@
 
 <br><br>
 
-## 기능 소개📂
+## 📂기능 소개
 ✔️ 기능1: AI와의 음성 채팅<br>
 : 사용자가 설정한 시간에(ex. 저녁 7시) 규칙적으로 하루에 있었던 일, 수면 시간, 섭취 음식, 약 복용 여부 등 여러 질문들을 챗봇이 음성으로 제공
 
@@ -38,7 +38,7 @@
 
 <br><br>
 
-## BE 사용 기술 및 프레임워크💻
+## 💻BE 사용 기술 및 프레임워크
 - gpt-4o: https://openai.com/index/hello-gpt-4o/
 - Google cloud Text-to-Speech: https://cloud.google.com/text-to-speech?hl=ko
 - Naver CLOVA Speech Recognition: https://www.ncloud.com/product/aiService/csr
@@ -60,7 +60,7 @@
 
 <br><br>
 
-## How to build🔨
+## 🔨How to build
 1. Ubuntu 서버 접속
 AWS에서 EC2 인스턴스를 생성한 후, 아래 명령어를 통해 서버에 접속하기
 
@@ -89,7 +89,7 @@ pm2 start src/app.js
 ```
 
 <br><br>
-## How to install🛠️
+## 🛠️How to install🛠
 1. 키 발급받기
 - Google cloud Text-to-Speech Key
 - Naver CLOVA Speech Recognition Key
@@ -111,7 +111,7 @@ MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/myDatabase
 - ```cat /home/ubuntu/Sodam/.env``` 로  .env 파일에 MONGODB_URI, Port 번호, JWT_SECRET, STT KEY, TTS KEY, OpenAI API KEY 작성
 
 <br><br>
-## How to test📜
+## 📜How to test
 1. APK 테스트
    프론트엔드와 백엔드가 통합된 APK 테스트는 https://github.com/EWHA-DraWings/FE의 README를 참고해주세요.
 
